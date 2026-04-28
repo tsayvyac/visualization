@@ -21,7 +21,7 @@ let resizeTimer = null;
 const plotConfig = {
 	batting: {
 		label: 'Batting',
-		file: '/data/Batting.csv',
+		file: 'data/Batting.csv',
 		metrics: [
 			{ key: 'G', label: 'Games' },
 			{ key: 'AB', label: 'AtBats' },
@@ -35,7 +35,7 @@ const plotConfig = {
 	},
 	pitching: {
 		label: 'Pitching',
-		file: '/data/Pitching.csv',
+		file: 'data/Pitching.csv',
 		metrics: [
 			{ key: 'G', label: 'Games' },
 			{ key: 'GS', label: 'Starts' },
@@ -49,7 +49,7 @@ const plotConfig = {
 	},
 	fielding: {
 		label: 'Fielding',
-		file: '/data/Fielding.csv',
+		file: 'data/Fielding.csv',
 		metrics: [
 			{ key: 'G', label: 'Games' },
 			{ key: 'GS', label: 'Starts' },
@@ -515,7 +515,7 @@ const initPlayerSearch = async () => {
 	}
 
 	try {
-		const rows = await d3.csv('/data/People.csv');
+		const rows = await d3.csv('data/People.csv');
 		allPlayers = rows
 			.map((row) => ({
 				id: row.playerID,
