@@ -28,7 +28,7 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 
 	const width = Math.max(host.clientWidth || 900, 900);
 	const height = Math.max((app.clientHeight - 130 || 560), 400);
-	const margin = { top: 30, right: 20, bottom: 20, left: 20 };
+	const margin = { top: 30, right: 20, bottom: 20, left: 40 };
 	const innerWidth = width - margin.left - margin.right;
 	const innerHeight = height - margin.top - margin.bottom;
 
@@ -41,33 +41,44 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 
 	const chart = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-	const xScale = d3.scalePoint().domain(dimensions).range([0, innerWidth]).padding(0.25);
-
-	const yScales = new Map();
+	const yDomains = new Map();
 	for (const dimension of dimensions) {
 		const extent = d3.extent(rows, (row) => row[dimension]);
 		const min = extent[0] ?? 0;
 		const max = extent[1] ?? 1;
 		const adjustedMax = min === max ? max + 1 : max;
-		yScales.set(dimension, d3.scaleLinear().domain([min, adjustedMax]).nice().range([innerHeight, 0]));
+		yDomains.set(dimension, [min, adjustedMax]);
 	}
+
+	const normalizeValue = (value, dimension) => {
+		const [min, max] = yDomains.get(dimension);
+		if (max === min) {
+			return innerHeight;
+		}
+		const normalized = (value - min) / (max - min);
+		return innerHeight - normalized * innerHeight;
+	};
 
 	const draggingPositions = {};
 	const activeBrushes = new Map();
-	const lineGenerator = d3.line();
 
 	const getAxisPosition = (dimension) => {
 		const customPosition = draggingPositions[dimension];
-		return customPosition == null ? xScale(dimension) : customPosition;
+		if (customPosition != null) {
+			return customPosition;
+		}
+		const index = dimensions.indexOf(dimension);
+		return (index / (dimensions.length - 1)) * innerWidth;
 	};
 
-	const linePath = (row) =>
-		lineGenerator(
-			dimensions.map((dimension) => [
-				getAxisPosition(dimension),
-				yScales.get(dimension)(row[dimension]),
-			]),
-		);
+	const linePath = (row) => {
+		const points = dimensions.map((dimension) => {
+			const x = getAxisPosition(dimension);
+			const y = normalizeValue(row[dimension], dimension);
+			return [x, y];
+		});
+		return 'M' + points.map((p) => p.join(',')).join('L');
+	};
 
 	const pathGroup = chart.append('g').attr('fill', 'none').attr('stroke-width', 1.5).attr('stroke-opacity', 0.4);
 
@@ -75,7 +86,7 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 		[...activeBrushes.entries()].every(([dimension, selection]) => {
 			if (!selection) return true;
 			const value = row[dimension];
-			const yValue = yScales.get(dimension)(value);
+			const yValue = normalizeValue(value, dimension);
 			return yValue >= selection[0] && yValue <= selection[1];
 		});
 
@@ -134,14 +145,16 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 		.data(dimensions, (dimension) => dimension)
 		.join('g')
 		.attr('class', 'dimension')
-		.attr('transform', (dimension) => `translate(${xScale(dimension)},0)`);
+		.attr('transform', (dimension) => `translate(${getAxisPosition(dimension)},0)`);
 
 	axisSelection
 		.append('g')
 		.attr('class', 'axis')
 		.each(function applyAxis(dimension) {
+			const domain = yDomains.get(dimension);
+			const scale = d3.scaleLinear().domain(domain).range([innerHeight, 0]);
 			const format = dimension === 'Year' ? d3.format('d') : undefined;
-			d3.select(this).call(d3.axisLeft(yScales.get(dimension)).ticks(6).tickFormat(format));
+			d3.select(this).call(d3.axisLeft(scale).ticks(6).tickFormat(format));
 		});
 
 	axisSelection
@@ -165,7 +178,7 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 	const dragBehavior = d3
 		.drag()
 		.on('start', (event, dimension) => {
-			draggingPositions[dimension] = xScale(dimension);			
+			draggingPositions[dimension] = getAxisPosition(dimension);
 		})
 		.on('drag', (event, dimension) => {
 			const [x] = d3.pointer(event, chart.node());
@@ -176,17 +189,16 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 				.sort((a, b) => getAxisPosition(a) - getAxisPosition(b));
 
 			dimensions.splice(1, dimensions.length - 1, ...movableDimensions);
-			xScale.domain(dimensions);
 
 			axisSelection.attr('transform', (axisDimension) => `translate(${getAxisPosition(axisDimension)},0)`);
-			paths.attr('d', linePath);			
+			paths.attr('d', linePath);
 		})
 		.on('end', (event, dimension) => {
 			delete draggingPositions[dimension];
 			axisSelection
 				.transition()
 				.duration(140)
-				.attr('transform', (axisDimension) => `translate(${xScale(axisDimension)},0)`);
+				.attr('transform', (axisDimension) => `translate(${getAxisPosition(axisDimension)},0)`);
 
 			paths.transition().duration(140).attr('d', linePath);
 		});
@@ -201,7 +213,7 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 		.attr('font-family', 'Space Grotesk, sans-serif')
 		.text((dimension) => dimension)
 		.attr('cursor', (dimension) => (dimension === 'Year' ? 'default' : 'ew-resize'))
-		.call((selection) => selection.filter((dimension) => dimension !== 'Year').call(dragBehavior));	
+		.call((selection) => selection.filter((dimension) => dimension !== 'Year').call(dragBehavior));
 };
 
 export const renderPlotForCurrentState = async () => {
