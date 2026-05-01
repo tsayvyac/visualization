@@ -27,7 +27,7 @@ const renderParallelCoordinates = (rows, dimensions, statLabel, subtitle) => {
 	}
 
 	const width = Math.max(host.clientWidth || 900, 900);
-	const height = 560;
+	const height = Math.max((app.clientHeight - 130 || 560), 400);
 	const margin = { top: 30, right: 20, bottom: 20, left: 20 };
 	const innerWidth = width - margin.left - margin.right;
 	const innerHeight = height - margin.top - margin.bottom;

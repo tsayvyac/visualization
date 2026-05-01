@@ -4,11 +4,5 @@ export const dom = {
 	searchInput: document.getElementById('player-search'),
 	playerSuggestions: document.getElementById('player-suggestions'),
 	selectedPlayersList: document.getElementById('selected-players-list'),
-	playerDetailsContainer: document.getElementById('player-details'),
-	detailsPlayerName: document.getElementById('details-player-name'),
-	closeDetailsButton: document.getElementById('close-details'),
-	detailsYearSelect: document.getElementById('details-year-select'),
-	detailsStatsContainer: document.getElementById('details-stats-container'),
-	detailsCategory: document.getElementById('details-category'),
-	detailsYearSelectorContainer: document.getElementById('details-year-selector-container'),
+	playerDetailsAside: document.getElementById('player-details-aside'),
 };
