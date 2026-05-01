@@ -148,6 +148,15 @@ const renderSuggestions = (query = '') => {
 		option.className = 'block w-full rounded-md px-2 py-1 text-left text-sm text-slate-700 hover:bg-slate-100';
 
 		option.addEventListener('click', () => {
+			if (selectedPlayers.size >= 10) {
+				alert('You can select a maximum of 10 players.');
+				if (searchInput) {
+					searchInput.value = '';
+				}
+				renderSuggestions('');
+				return;
+			}
+
 			selectedPlayers.set(player.id, {
 				id: player.id,
 				name: player.name,
